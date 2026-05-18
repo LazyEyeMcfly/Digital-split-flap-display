@@ -9,7 +9,7 @@ const DB_PATH       = process.env.DB_PATH;
 const PORT          = parseInt(process.env.PORT          || '3000',  10);
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || '2000',  10);
-const MAX_ROWS      = parseInt(process.env.MAX_ROWS      || '10',    10);
+const MAX_ROWS      = parseInt(process.env.MAX_ROWS      || '15',    10);
 
 // ---------------------------------------------------------------------------
 // Username resolution

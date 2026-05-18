@@ -4,7 +4,7 @@
 //  Config
 // ============================================================
 const CHARS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#-.:&\'/()';
-const NUM_ROWS  = 10;
+const NUM_ROWS  = 15;
 const HALF_MS   = 50;  // ms per half-flip; full flip = 2 × HALF_MS
 const STEP_GAP  = 0;   // ms between queued steps in a cycle (0 = back-to-back)
 
