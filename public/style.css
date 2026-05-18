@@ -117,9 +117,9 @@ body {
 /* Width = N cells + (N-1) gaps */
 .col-id     { width: calc(4  * var(--cell-w) + 3  * var(--gap)); }
 .col-type   { width: calc(5  * var(--cell-w) + 4  * var(--gap)); }
-.col-title  { width: calc(20 * var(--cell-w) + 19 * var(--gap)); }
+.col-title  { width: calc(26 * var(--cell-w) + 25 * var(--gap)); }
 .col-status { width: calc(11 * var(--cell-w) + 10 * var(--gap)); }
-.col-req    { width: calc(10 * var(--cell-w) + 9  * var(--gap)); }
+.col-req    { width: calc(13 * var(--cell-w) + 12 * var(--gap)); }
 
 /* ── Board rows ── */
 #board-rows {

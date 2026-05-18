@@ -11,9 +11,9 @@ const STEP_GAP  = 0;   // ms between queued steps in a cycle (0 = back-to-back)
 const FIELDS = [
   { key: 'id',        len: 4  },
   { key: 'type',      len: 5  },
-  { key: 'title',     len: 20 },
+  { key: 'title',     len: 26 },
   { key: 'status',    len: 11 },
-  { key: 'requester', len: 10 },
+  { key: 'requester', len: 13 },
 ];
 
 // ============================================================
@@ -96,8 +96,8 @@ function formatRequest(req) {
   let   title  = String(req.title || '').toUpperCase();
   if (req.type === 'TV' && req.season) title += ' S' + req.season;
   const status = padTo((req.status || '').replace(/_/g, ' '), 11);
-  const req_   = padTo(req.requester || 'UNKNOWN', 10);
-  return { id, type, title: padTo(title, 20), status, requester: req_ };
+  const req_   = padTo(req.requester || 'UNKNOWN', 13);
+  return { id, type, title: padTo(title, 26), status, requester: req_ };
 }
 
 // ============================================================

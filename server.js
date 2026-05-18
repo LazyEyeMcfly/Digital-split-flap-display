@@ -34,7 +34,7 @@ async function resolveUsername(discordId) {
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     const raw  = data.global_name || data.username || id;
-    const name = raw.toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 10) ||
+    const name = raw.toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 13) ||
                  ('USER' + id.slice(-4));
     usernameCache.set(id, name);
     return name;
@@ -78,15 +78,7 @@ async function fetchRequests() {
       SELECT id, type, title, season, status, discord_id
       FROM requests
       WHERE status NOT IN ('COMPLETED', 'TERMINATED')
-      ORDER BY
-        CASE status
-          WHEN 'IN_PROGRESS' THEN 0
-          WHEN 'PENDING'     THEN 1
-          WHEN 'NOT_OUT_YET' THEN 2
-          WHEN 'UNAVAILABLE' THEN 3
-          ELSE 4
-        END,
-        created_at DESC
+      ORDER BY id ASC
       LIMIT ?
     `).all(MAX_ROWS);
 
