@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  split-flap-display:
+    build: .
+    container_name: split-flap-display
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/data/plex-requests.db
+    volumes:
+      - ../plex-discord-bot/db:/data:ro

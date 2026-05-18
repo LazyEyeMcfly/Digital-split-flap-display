@@ -100,7 +100,7 @@ async function fetchRequests() {
     })));
   } catch (e) {
     console.error(`[ERROR] Query failed: ${e.message}`);
-    db = null; // reopen next poll
+    db = null;
     return [];
   }
 }
