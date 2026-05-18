@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plex Request Board</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="board-wrap">
+    <div id="board-header">
+      <div class="header-title">&#9670;&nbsp;&nbsp;PLEX REQUEST BOARD&nbsp;&nbsp;&#9670;</div>
+      <div id="header-clock">--:--:--</div>
+    </div>
+    <div id="col-headers">
+      <div class="col-label col-id">#</div>
+      <div class="col-sep-hdr"></div>
+      <div class="col-label col-type">TYPE</div>
+      <div class="col-sep-hdr"></div>
+      <div class="col-label col-title">TITLE</div>
+      <div class="col-sep-hdr"></div>
+      <div class="col-label col-status">STATUS</div>
+      <div class="col-sep-hdr"></div>
+      <div class="col-label col-req">REQUESTED BY</div>
+    </div>
+    <div id="board-rows"></div>
+    <div id="status-bar">
+      <span id="connection-status" class="status-offline">CONNECTING</span>
+      <span id="last-update"></span>
+    </div>
+  </div>
+  <script src="display.js"></script>
+</body>
+</html>

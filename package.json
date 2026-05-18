@@ -1,0 +1,17 @@
+{
+  "name": "digital-split-flap-display",
+  "version": "1.0.0",
+  "description": "Realistic split-flap display for Plex request board",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  }
+}

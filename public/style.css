@@ -1,0 +1,245 @@
+:root {
+  --cell-w:    15px;
+  --cell-h:    34px;
+  --cell-half: 17px;
+  --font-size: 19px;
+  --gap:       1px;
+  --amber:     #e8a420;
+  --card-top:  #1d1d1d;
+  --card-bot:  #161616;
+  --board-bg:  #0c0c0c;
+  --gap-col:   #040404;
+  --sep-w:     8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: #060606;
+  background-image: radial-gradient(ellipse at 50% 25%, #111 0%, #060606 65%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 2rem;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100%;
+}
+
+/* ── Board frame ── */
+#board-wrap {
+  position: relative;
+  background: var(--board-bg);
+  border: 2px solid #272727;
+  border-top-color: #333;
+  border-left-color: #303030;
+  border-radius: 6px;
+  padding: 18px 22px 16px;
+  box-shadow:
+    0 0 0 1px #0a0a0a,
+    0 12px 50px rgba(0,0,0,0.85),
+    0 0 80px rgba(232,164,32,0.03),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* Subtle scanline overlay */
+#board-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.06) 3px,
+    rgba(0,0,0,0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 900;
+}
+
+/* ── Header ── */
+#board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1c1c1c;
+  margin-bottom: 10px;
+}
+
+.header-title {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.38em;
+  text-shadow: 0 0 14px rgba(232,164,32,0.45);
+  white-space: nowrap;
+}
+
+#header-clock {
+  color: var(--amber);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px rgba(232,164,32,0.35);
+  white-space: nowrap;
+}
+
+/* ── Column headers ── */
+#col-headers {
+  display: flex;
+  align-items: center;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #181818;
+  margin-bottom: 5px;
+}
+
+.col-sep-hdr {
+  width: var(--sep-w);
+  flex-shrink: 0;
+}
+
+.col-label {
+  color: #3a3a3a;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-align: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Width = N cells + (N-1) gaps */
+.col-id     { width: calc(4  * var(--cell-w) + 3  * var(--gap)); }
+.col-type   { width: calc(5  * var(--cell-w) + 4  * var(--gap)); }
+.col-title  { width: calc(26 * var(--cell-w) + 25 * var(--gap)); }
+.col-status { width: calc(11 * var(--cell-w) + 10 * var(--gap)); }
+.col-req    { width: calc(13 * var(--cell-w) + 12 * var(--gap)); }
+
+/* ── Board rows ── */
+#board-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+}
+
+.field {
+  display: flex;
+  gap: var(--gap);
+  background: var(--gap-col);
+  flex-shrink: 0;
+}
+
+.field-sep {
+  width: var(--sep-w);
+  height: var(--cell-h);
+  flex-shrink: 0;
+  background: #060606;
+  border-left:  1px solid #181818;
+  border-right: 1px solid #181818;
+}
+
+/* ── Flap cell ── */
+.flap-cell {
+  position: relative;
+  width: var(--cell-w);
+  height: var(--cell-h);
+  flex-shrink: 0;
+  perspective: 350px;
+  perspective-origin: 50% 50%;
+}
+
+/* Center fold line — the most important visual detail */
+.flap-cell::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--cell-half) - 1px);
+  height: 2px;
+  background: #000;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* Upper half — animates the flip */
+.cell-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--cell-half);
+  overflow: hidden;
+  background: var(--card-top);
+  transform-origin: center bottom;
+  backface-visibility: hidden;
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.55),
+    inset 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Lower half — static, reveals new char at mid-flip */
+.cell-bot {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--cell-half);
+  overflow: hidden;
+  background: var(--card-bot);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+
+/*
+  The character span is sized to the full cell height and positioned
+  so that each half clips to show only its portion of the character.
+  Upper: span at top=0    → top half of char visible
+  Lower: span at bottom=0 → bottom half of char visible
+*/
+.ch {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--cell-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--amber);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font-size);
+  font-weight: bold;
+  line-height: 1;
+  text-shadow: 0 0 7px rgba(232,164,32,0.55);
+  user-select: none;
+  pointer-events: none;
+}
+
+.cell-top .ch { top: 0;    }
+.cell-bot .ch { bottom: 0; }
+
+/* ── Status bar ── */
+#status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 7px;
+  border-top: 1px solid #181818;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+}
+
+.status-live    { color: #4a9a5a; }
+.status-offline { color: #8a3333; }
+
+#last-update { color: #303030; }
