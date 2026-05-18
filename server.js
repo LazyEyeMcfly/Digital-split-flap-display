@@ -77,7 +77,7 @@ async function fetchRequests() {
     const rows = db.prepare(`
       SELECT id, type, title, season, status, discord_id
       FROM requests
-      WHERE status NOT IN ('COMPLETED', 'TERMINATED')
+      WHERE status NOT IN ('COMPLETED', 'TERMINATED', 'UNAVAILABLE')
       ORDER BY id ASC
       LIMIT ?
     `).all(MAX_ROWS);
