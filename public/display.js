@@ -307,24 +307,39 @@ function triggerChaos() {
   }
 
   // Restore real data after chaos settles:
-  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~4500ms
+  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~4000ms
   setTimeout(() => {
-    // Clear any remaining queued chaos flips
+    // Empty queues IN-PLACE (.length=0) so existing drain closure references
+    // see the same cleared array — avoids the two-drain race condition
     for (let r = 0; r < NUM_ROWS; r++)
       for (const field of FIELDS)
         for (let p = 0; p < field.len; p++)
-          queues[r][field.key][p] = [];
+          queues[r][field.key][p].length = 0;
 
-    // Reset displayed so updateBoard sees every cell as dirty and redraws
-    for (let r = 0; r < NUM_ROWS; r++)
-      for (const field of FIELDS)
-        displayed[r][field.key] = ' '.repeat(field.len);
+    // Restore directly: compute path from each cell's current char to target,
+    // bypassing displayed[] diffing entirely
+    for (let r = 0; r < NUM_ROWS; r++) {
+      const req = lastRows[r] ? formatRequest(lastRows[r]) : null;
+      for (const field of FIELDS) {
+        const targetStr = req ? req[field.key] : ' '.repeat(field.len);
+        displayed[r][field.key] = targetStr;
+        for (let p = 0; p < field.len; p++) {
+          const target = targetStr[p];
+          const cell   = cells[r][field.key][p];
+          const queue  = queues[r][field.key][p];
+          const from   = cell.current;
+          if (from === target) continue;
+          const path = buildPath(from, target);
+          for (const ch of path) queue.push(ch);
+          drain(r, field.key, p);
+        }
+      }
+    }
 
-    updateBoard(lastRows);
     chaosRunning = false;
     btnChaos.classList.remove('btn-active');
     btnChaos.textContent = '◆ SCRAMBLE';
-  }, 4500);
+  }, 4000);
 }
 
 function toggleAutoChaos() {
