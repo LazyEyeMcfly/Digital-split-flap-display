@@ -307,7 +307,7 @@ function triggerChaos() {
   }
 
   // Restore real data after chaos settles:
-  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~2700ms
+  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~4500ms
   setTimeout(() => {
     // Clear any remaining queued chaos flips
     for (let r = 0; r < NUM_ROWS; r++)
@@ -324,7 +324,7 @@ function triggerChaos() {
     chaosRunning = false;
     btnChaos.classList.remove('btn-active');
     btnChaos.textContent = '◆ SCRAMBLE';
-  }, 3000);
+  }, 4500);
 }
 
 function toggleAutoChaos() {
@@ -378,7 +378,8 @@ function connect() {
     try {
       const msg = JSON.parse(e.data);
       if (msg.type === 'update') {
-        lastRows = msg.rows; // save for chaos restore
+        lastRows = msg.rows; // always save latest data
+        if (chaosRunning) return; // don't update board while chaos is running
         updateBoard(msg.rows);
         const d  = new Date();
         const ts = [
