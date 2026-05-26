@@ -278,10 +278,26 @@ let chaosRunning     = false;
 let autoChaosEnabled = false;
 let autoChaosTimer   = null;
 
+// Returns true only when every cell has finished flipping and queues are empty
+function allCellsIdle() {
+  for (let r = 0; r < NUM_ROWS; r++)
+    for (const field of FIELDS)
+      for (let p = 0; p < field.len; p++)
+        if (cells[r][field.key][p].busy || queues[r][field.key][p].length > 0)
+          return false;
+  return true;
+}
+
+// Poll every 50ms until all cells are idle, then call callback
+function waitForIdle(callback) {
+  if (allCellsIdle()) { callback(); return; }
+  setTimeout(() => waitForIdle(callback), 50);
+}
+
 function triggerChaos() {
   if (chaosRunning) return;
   chaosRunning = true;
-  initAudio(); // prime audio immediately on button press
+  initAudio();
 
   const btnChaos = document.getElementById('btn-chaos');
   btnChaos.classList.add('btn-active');
@@ -291,12 +307,10 @@ function triggerChaos() {
   for (let r = 0; r < NUM_ROWS; r++) {
     for (const field of FIELDS) {
       for (let p = 0; p < field.len; p++) {
-        const delay = Math.random() * 400; // up to 400ms stagger
+        const delay = Math.random() * 400;
         setTimeout(() => {
-          // Push 8-18 random chars straight into the queue for frantic flipping
           const steps = 8 + Math.floor(Math.random() * 11);
           for (let s = 0; s < steps; s++) {
-            // Skip index 0 (space) so we get visible characters
             const idx = 1 + Math.floor(Math.random() * (CHARS.length - 1));
             queues[r][field.key][p].push(CHARS[idx]);
           }
@@ -306,40 +320,35 @@ function triggerChaos() {
     }
   }
 
-  // Restore real data after chaos settles:
-  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~4000ms
+  // After minimum scramble time, wait for every cell to truly finish,
+  // then restore — and only mark chaos done after restore is also complete
   setTimeout(() => {
-    // Empty queues IN-PLACE (.length=0) so existing drain closure references
-    // see the same cleared array — avoids the two-drain race condition
-    for (let r = 0; r < NUM_ROWS; r++)
-      for (const field of FIELDS)
-        for (let p = 0; p < field.len; p++)
-          queues[r][field.key][p].length = 0;
-
-    // Restore directly: compute path from each cell's current char to target,
-    // bypassing displayed[] diffing entirely
-    for (let r = 0; r < NUM_ROWS; r++) {
-      const req = lastRows[r] ? formatRequest(lastRows[r]) : null;
-      for (const field of FIELDS) {
-        const targetStr = req ? req[field.key] : ' '.repeat(field.len);
-        displayed[r][field.key] = targetStr;
-        for (let p = 0; p < field.len; p++) {
-          const target = targetStr[p];
-          const cell   = cells[r][field.key][p];
-          const queue  = queues[r][field.key][p];
-          const from   = cell.current;
-          if (from === target) continue;
-          const path = buildPath(from, target);
-          for (const ch of path) queue.push(ch);
-          drain(r, field.key, p);
+    waitForIdle(() => {
+      // Every cell is idle: cell.current is the exact chaos char it landed on
+      for (let r = 0; r < NUM_ROWS; r++) {
+        const req = lastRows[r] ? formatRequest(lastRows[r]) : null;
+        for (const field of FIELDS) {
+          const targetStr = req ? req[field.key] : ' '.repeat(field.len);
+          displayed[r][field.key] = targetStr;
+          for (let p = 0; p < field.len; p++) {
+            const target = targetStr[p];
+            const cell   = cells[r][field.key][p];
+            if (cell.current === target) continue;
+            const path = buildPath(cell.current, target);
+            for (const ch of path) queues[r][field.key][p].push(ch);
+            drain(r, field.key, p);
+          }
         }
       }
-    }
 
-    chaosRunning = false;
-    btnChaos.classList.remove('btn-active');
-    btnChaos.textContent = '◆ SCRAMBLE';
-  }, 4000);
+      // Wait for restore flips to finish before re-enabling live updates
+      waitForIdle(() => {
+        chaosRunning = false;
+        btnChaos.classList.remove('btn-active');
+        btnChaos.textContent = '◆ SCRAMBLE';
+      });
+    });
+  }, 2500); // generous minimum — lets all scramble flips get started
 }
 
 function toggleAutoChaos() {
