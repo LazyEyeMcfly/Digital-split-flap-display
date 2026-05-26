@@ -309,6 +309,17 @@ function triggerChaos() {
   // Restore real data after chaos settles:
   // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~2700ms
   setTimeout(() => {
+    // Clear any remaining queued chaos flips
+    for (let r = 0; r < NUM_ROWS; r++)
+      for (const field of FIELDS)
+        for (let p = 0; p < field.len; p++)
+          queues[r][field.key][p] = [];
+
+    // Reset displayed so updateBoard sees every cell as dirty and redraws
+    for (let r = 0; r < NUM_ROWS; r++)
+      for (const field of FIELDS)
+        displayed[r][field.key] = ' '.repeat(field.len);
+
     updateBoard(lastRows);
     chaosRunning = false;
     btnChaos.classList.remove('btn-active');
