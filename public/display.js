@@ -23,14 +23,18 @@ let audioCtx   = null;
 let lastSoundT = 0;
 
 function initAudio() {
-  if (audioCtx) return;
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  } catch { /* no audio */ }
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch { return; }
+  }
+  // Chrome starts contexts suspended until a user gesture — resume immediately
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function playFlap() {
-  if (!audioCtx) return;
+  // Only play when context is fully running (avoids the silent-then-burst lag)
+  if (!audioCtx || audioCtx.state !== 'running') return;
   const t = audioCtx.currentTime;
   if (t - lastSoundT < 0.03) return;  // throttle: max ~33 clicks/sec
   lastSoundT = t;
@@ -65,15 +69,15 @@ function playFlap() {
 // ============================================================
 //  Cell state + queues
 // ============================================================
-// cells[r][fieldKey][pos]  = { topEl, topChEl, botChEl, current, busy }
-// queues[r][fieldKey][pos] = string[] — chars still to flip through
 const cells  = [];
 const queues = [];
 
-// What the board *should* show (used to diff incoming updates)
 const displayed = Array.from({ length: NUM_ROWS }, () =>
   Object.fromEntries(FIELDS.map(f => [f.key, ' '.repeat(f.len)]))
 );
+
+// Last real data received — used to restore after chaos
+let lastRows = [];
 
 // ============================================================
 //  Text helpers
@@ -166,22 +170,17 @@ function flipOne(cell, toChar, done) {
 
   const { topEl, topChEl, botChEl } = cell;
 
-  // Phase 1: fold the current top-half card away (0° → -90°)
   topEl.style.transition = `transform ${HALF_MS}ms ease-in`;
   topEl.style.transform  = 'rotateX(-90deg)';
 
   setTimeout(() => {
-    // At the fold midpoint:
-    //   • reveal new char's bottom half immediately
-    //   • prepare the new top-half card behind the fold (90°, no transition)
     botChEl.textContent    = toChar;
     topChEl.textContent    = toChar;
     topEl.style.transition = 'none';
     topEl.style.transform  = 'rotateX(90deg)';
 
-    void topEl.offsetHeight; // force reflow so the transition resets cleanly
+    void topEl.offsetHeight;
 
-    // Phase 2: new top-half falls into place (90° → 0°)
     topEl.style.transition = `transform ${HALF_MS}ms ease-out`;
     topEl.style.transform  = 'rotateX(0deg)';
 
@@ -243,7 +242,6 @@ function scheduleCell(r, fKey, p, targetChar) {
   const cell  = cells[r][fKey][p];
   const queue = queues[r][fKey][p];
 
-  // Compute path from the effective current char (tail of queue, or cell.current)
   const effCurrent = queue.length > 0 ? queue[queue.length - 1] : cell.current;
   if (effCurrent === targetChar) return;
 
@@ -261,7 +259,7 @@ function updateBoard(rows) {
 
     for (const field of FIELDS) {
       const targetStr  = formatted ? formatted[field.key] : ' '.repeat(field.len);
-      const currentStr = displayed[r][field.key]; // snapshot before we overwrite
+      const currentStr = displayed[r][field.key];
 
       for (let p = 0; p < field.len; p++) {
         if (targetStr[p] !== currentStr[p]) {
@@ -270,6 +268,67 @@ function updateBoard(rows) {
       }
       displayed[r][field.key] = targetStr;
     }
+  }
+}
+
+// ============================================================
+//  Chaos mode
+// ============================================================
+let chaosRunning     = false;
+let autoChaosEnabled = false;
+let autoChaosTimer   = null;
+
+function triggerChaos() {
+  if (chaosRunning) return;
+  chaosRunning = true;
+  initAudio(); // prime audio immediately on button press
+
+  const btnChaos = document.getElementById('btn-chaos');
+  btnChaos.classList.add('btn-active');
+  btnChaos.textContent = 'SCRAMBLING...';
+
+  // Stagger each cell's scramble start for a cascading wave effect
+  for (let r = 0; r < NUM_ROWS; r++) {
+    for (const field of FIELDS) {
+      for (let p = 0; p < field.len; p++) {
+        const delay = Math.random() * 400; // up to 400ms stagger
+        setTimeout(() => {
+          // Push 8-18 random chars straight into the queue for frantic flipping
+          const steps = 8 + Math.floor(Math.random() * 11);
+          for (let s = 0; s < steps; s++) {
+            // Skip index 0 (space) so we get visible characters
+            const idx = 1 + Math.floor(Math.random() * (CHARS.length - 1));
+            queues[r][field.key][p].push(CHARS[idx]);
+          }
+          drain(r, field.key, p);
+        }, delay);
+      }
+    }
+  }
+
+  // Restore real data after chaos settles:
+  // max stagger (400ms) + max steps (18) × flip time (100ms) + buffer = ~2700ms
+  setTimeout(() => {
+    updateBoard(lastRows);
+    chaosRunning = false;
+    btnChaos.classList.remove('btn-active');
+    btnChaos.textContent = '◆ SCRAMBLE';
+  }, 3000);
+}
+
+function toggleAutoChaos() {
+  autoChaosEnabled = !autoChaosEnabled;
+  const btn = document.getElementById('btn-auto');
+
+  if (autoChaosEnabled) {
+    btn.textContent = 'AUTO: ON';
+    btn.classList.add('btn-active');
+    autoChaosTimer = setInterval(triggerChaos, 60 * 60 * 1000); // every hour
+  } else {
+    btn.textContent = 'AUTO: OFF';
+    btn.classList.remove('btn-active');
+    clearInterval(autoChaosTimer);
+    autoChaosTimer = null;
   }
 }
 
@@ -308,6 +367,7 @@ function connect() {
     try {
       const msg = JSON.parse(e.data);
       if (msg.type === 'update') {
+        lastRows = msg.rows; // save for chaos restore
         updateBoard(msg.rows);
         const d  = new Date();
         const ts = [
@@ -337,7 +397,11 @@ document.addEventListener('DOMContentLoaded', () => {
   startClock();
   connect();
 
-  // Web Audio requires a user gesture before the context can start
-  document.addEventListener('click',   initAudio, { once: true });
-  document.addEventListener('keydown', initAudio, { once: true });
+  document.getElementById('btn-chaos').addEventListener('click', triggerChaos);
+  document.getElementById('btn-auto').addEventListener('click', toggleAutoChaos);
+
+  // Prime audio on any interaction — removes the silent-lag issue
+  const primeAudio = () => initAudio();
+  document.addEventListener('click',   primeAudio);
+  document.addEventListener('keydown', primeAudio);
 });
